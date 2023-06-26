@@ -14,10 +14,7 @@
 
 1. `sudo apt update`
 2. `sudo apt install build-essential`
-3. `sudo apt install -y musl-tools musl-dev`
-4. `sudo apt install -y pkg-config libssl-dev`
-5. `sudo update-ca-certificates`
-6. `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+3. `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 
 ### Building Qiner
 

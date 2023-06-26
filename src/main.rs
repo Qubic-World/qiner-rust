@@ -36,7 +36,7 @@ fn get_id() -> String {
 
 fn main() {
 	// Init dotenv
-	dotenv::dotenv().unwrap();
+	dotenv::dotenv().ok();
 
 	pretty_env_logger::init_timed();
 
