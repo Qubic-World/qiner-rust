@@ -13,17 +13,8 @@ use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use qiner::version::get_version;
 
-fn get_number_of_thread() -> Option<usize> {
-	return match env::var(NUMBER_OF_THREADS) {
-		Ok(value) => {
-			value.parse::<usize>().ok()
-		}
-		Err(error) => {
-			log::warn!("get_number_of_thread: {:?}", error);
-
-			None
-		}
-	};
+fn get_number_of_thread() -> usize {
+	env::var(NUMBER_OF_THREADS).unwrap().parse::<usize>().unwrap()
 }
 
 fn get_number_of_tasks() -> usize {
@@ -54,28 +45,23 @@ fn main() {
 
 	pretty_env_logger::init_timed();
 
-	let mut stack_size = STACK_SIZE;
-	let mut builder = Builder::new_multi_thread();
+	let number_of_threads = get_number_of_thread();
+	let stack_size = STACK_SIZE * (number_of_threads + 3);
 
-	// Set worker threads
-	if let Some(number_of_thread) = get_number_of_thread() {
-		builder.worker_threads(number_of_thread + 3);
-		stack_size *= number_of_thread + 3;
-	}
-
-	builder.thread_stack_size(stack_size)
-		   .enable_all()
-		   .build().unwrap()
-		   .block_on(async {
-			   async_main().await;
-		   });
+	Builder::new_multi_thread()
+		.worker_threads(number_of_threads + 3)
+		.thread_stack_size(stack_size)
+		.enable_all()
+		.build().unwrap()
+		.block_on(async {
+			async_main().await;
+		});
 }
 
 async fn async_main() {
 
 	// Grab info
 	let number_of_threads = get_number_of_thread();
-	let number_of_tasks = get_number_of_tasks();
 	let ip_raw = get_server_ip();
 	let port_raw = get_server_port();
 	let id_raw = get_id();
@@ -86,8 +72,7 @@ async fn async_main() {
 	log::info!("Port: {port_raw}");
 	log::info!("Id: {id_raw}");
 	log::info!("Available cores: {}", num_cpus::get());
-	log::info!("Number of threads: {:?}", number_of_threads);
-	log::info!("Number of tasks: {number_of_tasks}");
+	log::info!("Number of threads: {}", number_of_threads);
 
 	// Convert ID
 	let id: Id = id_raw.as_bytes().try_into().unwrap();
@@ -99,7 +84,7 @@ async fn async_main() {
 		return;
 	}
 
-	let arc_miner = Arc::new(Miner::new(public_key, number_of_tasks));
+	let arc_miner = Arc::new(Miner::new(public_key, number_of_threads));
 	Miner::run(&arc_miner);
 
 	// Display task
