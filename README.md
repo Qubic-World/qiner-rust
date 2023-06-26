@@ -26,7 +26,7 @@ The built Qiner is `./root_directory/target/release/`
 #### .env
 
 The options to run Qiner are in the `.env` file
-<br></br>
+
 1. Create a `.env' next to the built Qiner
 2. Fill in the following options: RUST_LOG, NUMBER_OF_THREADS, ID, SERVER_IP, SERVER_PORT, VERSION
 
