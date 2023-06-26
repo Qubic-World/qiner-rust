@@ -43,11 +43,6 @@ fn main() {
 		// return;
 	};
 
-	let r = 52u8;
-	println!("{:b}", ((r as u32) << 8) as u32);
-	
-	return;
-
 	pretty_env_logger::init_timed();
 
 	let number_of_threads = get_number_of_thread();

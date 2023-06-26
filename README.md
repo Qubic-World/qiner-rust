@@ -2,17 +2,22 @@
 
 ## Deploy
 
-### Download Rust  
-  
-#### Windows  
-  
+### Download Rust
+
+#### Windows
+
 [Rust x64](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe)  
 [Rust x32](https://static.rust-lang.org/rustup/dist/i686-pc-windows-msvc/rustup-init.exe)  
 [Visual Studio C++ Build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
 
 #### Linux
 
-`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+1. `sudo apt update`
+2. `sudo apt install build-essential`
+3. `sudo apt install -y musl-tools musl-dev`
+4. `sudo apt install -y pkg-config libssl-dev`
+5. `sudo update-ca-certificates`
+6. `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 
 ### Building Qiner
 
@@ -50,7 +55,6 @@ IP and Port to which Qiner will connect
 #### VERSION
 
 Qubic version
-
 
 ##### Example
 
