@@ -36,12 +36,7 @@ fn get_id() -> String {
 
 fn main() {
 	// Init dotenv
-	let mut path = env::current_dir().unwrap().to_str().unwrap().to_string();
-	path.push_str("\\.env");
-	if let Err(error) = dotenv::from_path(path) {
-		// eprintln!("Env init: {:?}", error);
-		// return;
-	};
+	dotenv::dotenv().unwrap();
 
 	pretty_env_logger::init_timed();
 
