@@ -104,7 +104,7 @@ impl Miner {
 
 	fn get_random_seed() -> Seed {
 		let mut random_seed: Seed = Seed::default();
-		random_seed[0] = 126;
+		random_seed[0] = 74;
 		random_seed[1] = 27;
 		random_seed[2] = 26;
 		random_seed[3] = 27;
