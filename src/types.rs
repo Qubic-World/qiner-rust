@@ -5,7 +5,7 @@ use crate::types::network::{Key, Key64};
 
 pub const STATE_SIZE: usize = 200;
 pub const STATE_SIZE_64: usize = 200 / size_of::<u64>();
-pub const SOLUTION_THRESHOLD: usize = 19;
+pub const SOLUTION_THRESHOLD: usize = 21;
 pub const NUMBER_OF_NEURONS: usize = 4194304;
 pub const NUMBER_OF_NEURONS_64: usize = NUMBER_OF_NEURONS * size_of::<NeuronLink>() / size_of::<u64>();
 pub const NEURON_MOD_BITS: u64 = (((NUMBER_OF_NEURONS - 1) << size_of::<NeuronLink>() * 8) | (NUMBER_OF_NEURONS - 1)) as u64;
