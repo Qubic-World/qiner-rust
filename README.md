@@ -6,9 +6,8 @@
 
 #### Windows
 
-[Rust x64](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe)  
-[Rust x32](https://static.rust-lang.org/rustup/dist/i686-pc-windows-msvc/rustup-init.exe)  
-[Visual Studio C++ Build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+1. [Rust x64](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe) / [Rust x32](https://static.rust-lang.org/rustup/dist/i686-pc-windows-msvc/rustup-init.exe)  
+2. [Visual Studio C++ Build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
 
 #### Linux
 
