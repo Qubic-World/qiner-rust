@@ -29,7 +29,7 @@ The built Qiner is `./root_directory/target/release/`
 The options to run Qiner are in the `.env` file
 
 1. Create a `.env' next to the built Qiner
-2. Fill in the following options: `RUST_LOG`, `NUMBER_OF_THREADS`, `ID`, `SERVER_IP`, `SERVER_PORT`, `VERSION`
+2. Fill in the following options: `RUST_LOG`, `NUMBER_OF_THREADS`, `ID`, `SERVER_IP`, `SERVER_PORT`, `VERSION`, `RANDOM_SEED`, `SOLUTION_THRESHOLD`
 
 #### RUST_LOG
 
@@ -61,4 +61,6 @@ ID=UBAZRCVPOZTDKGCBNPGYFUPLZXDDNHSEGJRTAJKWJBHJDKHMAKVVFAKCZGRI
 SERVER_IP=176.9.28.103
 SERVER_PORT=21841
 VERSION=1.142.1
+RANDOM_SEED=1,0,233,9,136,69,43,139
+SOLUTION_THRESHOLD=22
 ```
