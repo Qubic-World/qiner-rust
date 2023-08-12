@@ -11,9 +11,11 @@
 
 #### Linux
 
-1. `sudo apt update`
-2. `sudo apt install build-essential cargo -y`
-3. `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo sh`
+```bash
+sudo apt update
+sudo apt install build-essential cargo -y
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo sh
+```
 
 ### Building Qiner
 
@@ -29,7 +31,7 @@ The built Qiner is `./root_directory/target/release/`
 The options to run Qiner are in the `.env` file
 
 1. Create a `.env' next to the built Qiner
-2. Fill in the following options: `RUST_LOG`, `NUMBER_OF_THREADS`, `ID`, `SERVER_IP`, `SERVER_PORT`, `VERSION`, `RANDOM_SEED`, `SOLUTION_THRESHOLD`
+2. Fill in the following options: `NUMBER_OF_THREADS`, `ID`, `SERVER_IP`, `SERVER_PORT`, `RANDOM_SEED`, `SOLUTION_THRESHOLD`
 
 #### NUMBER_OF_THREADS
 
