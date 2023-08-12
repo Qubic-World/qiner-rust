@@ -13,7 +13,7 @@
 
 1. `sudo apt update`
 2. `sudo apt install build-essential cargo -y`
-3. `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+3. `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo sh`
 
 ### Building Qiner
 
