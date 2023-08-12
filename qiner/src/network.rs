@@ -3,9 +3,9 @@ use std::mem::{size_of, transmute, transmute_copy, zeroed};
 use std::ptr;
 use k12::digest::{ExtendableOutputReset, Update};
 use k12::KangarooTwelve;
-use crate::types::network::{Dejavu, Key, KeyAndNonce, Protocol, Size, Type};
-use crate::types::{Gamma, Nonce, Nonce64, NUMBER_OF_NONCE, NUMBER_OF_NONCE_64, PublicKey64, Signature, VERSION_B};
-use crate::version::get_version;
+use lib::types::network::{Dejavu, Key, KeyAndNonce, Protocol, Size, Type};
+use lib::types::{Gamma, Nonce, Nonce64, NUMBER_OF_NONCE, NUMBER_OF_NONCE_64, PublicKey64, Signature};
+use lib::version::get_version;
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct RequestResponseHeader {

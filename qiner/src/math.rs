@@ -1,4 +1,4 @@
-﻿use crate::types::{KECCAK_ROUND, Nonce64, PublicKey64, State64, STATE_SIZE_64};
+﻿use lib::types::{KECCAK_ROUND, Nonce64, PublicKey64, State64, STATE_SIZE_64};
 
 pub(crate) fn random_64<const S: usize>(public_key: &PublicKey64, nonce: &Nonce64, output: &mut [u64; S]) {
 	let mut state: State64 = State64::default();

@@ -1,28 +1,5 @@
-[package]
-name = "qiner"
-version = "0.0.1"
-edition = "2021"
-authors = ["N-010"]
-
-[dependencies]
-# Async
-tokio = { version = "1.28.1", default-features = false, features = ["macros", "rt-multi-thread", "time", "sync", "net", "io-util"] }
-# Log
-pretty_env_logger = "0.5.0"
-log = "0.4.17"
-# Qubic
-keccak = "0.1.4"
-k12 = "0.3.0"
-
-# CPU
-num_cpus = "1.15.0"
-
-dotenv = "0.15.0"
-
-# Unix
-[target.'cfg(unix)'.dependencies]
-openssl = { version = "0.10", features = ["vendored"] }
-
-[profile.release]
-opt-level = 3
-lto = true
+[workspace]
+members = [
+    "lib",
+    "qiner",
+]

@@ -1,0 +1,21 @@
+[package]
+name = "lib"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[features]
+default = []
+full = [
+    "types",
+    "random_seed",
+    "env_names",
+    "version",
+    "solution_threshold"
+]
+types = []
+random_seed = ["types", "env_names"]
+env_names = []
+version = ["types", "env_names"]
+solution_threshold = ["env_names"]

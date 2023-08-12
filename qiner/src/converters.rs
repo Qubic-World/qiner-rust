@@ -1,7 +1,6 @@
-﻿use std::mem::{zeroed};
-use k12::digest::{ExtendableOutput, Update};
+﻿use k12::digest::{ExtendableOutput, Update};
 use k12::KangarooTwelve;
-use crate::types::{Id, PublicKey, PublicKey64};
+use lib::types::{Id, PublicKey, PublicKey64};
 
 const A: u8 = 'A' as u8;
 
@@ -64,7 +63,7 @@ fn test_public_key_converters() {
 	let mut public_key: PublicKey64 = Default::default();
 	get_public_key_64_from_id(&id, &mut public_key);
 
-	let mut id_from_key: Id = unsafe { zeroed::<Id>() };
+	let mut id_from_key: Id = unsafe { std::mem::zeroed::<Id>() };
 	get_id_from_public_key_64(&public_key, &mut id_from_key);
 
 	assert_eq!(id, id_from_key);

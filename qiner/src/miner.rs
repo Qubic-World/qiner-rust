@@ -5,7 +5,8 @@ use std::sync::{Arc};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 use std::thread::ThreadId;
-use crate::types::{
+use lib::solution_threshold::get_solution_threshold;
+use lib::types::{
 	MiningItemData,
 	MiningData,
 	NeuronLink,
@@ -16,7 +17,6 @@ use crate::types::{
 	PublicKey64,
 	Seed,
 	Seed64,
-	SOLUTION_THRESHOLD,
 	MINING_DATA_LENGTH,
 	NEURON_MOD_BITS,
 	NUMBER_OF_NEURONS,
@@ -84,7 +84,7 @@ impl Miner {
 		crate::math::random_64(&random_seed, &random_seed, &mut mining_data);
 
 		Miner {
-			solution_threshold: SOLUTION_THRESHOLD,
+			solution_threshold: get_solution_threshold(),
 			num_tasks: num_threads,
 			mining_data,
 			computor_public_key,
@@ -102,22 +102,8 @@ impl Miner {
 		self.iter_counter.load(Ordering::SeqCst)
 	}
 
-	fn get_random_seed() -> Seed {
-		let mut random_seed: Seed = Seed::default();
-		random_seed[0] = 74;
-		random_seed[1] = 27;
-		random_seed[2] = 26;
-		random_seed[3] = 27;
-		random_seed[4] = 26;
-		random_seed[5] = 27;
-		random_seed[6] = 26;
-		random_seed[7] = 27;
-
-		random_seed
-	}
-
 	fn get_random_seed_64() -> Seed64 {
-		let seed = Miner::get_random_seed();
+		let seed = lib::random_seed::get_random_seed();
 
 		let seed_64: Seed64;
 		unsafe {
