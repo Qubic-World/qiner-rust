@@ -23,7 +23,7 @@ dotenv = "0.15.0"
 [dependencies.lib]
 path = "../lib"
 default-features = false
-features = ["types", "version", "env_names", "random_seed", "solution_threshold"]
+features = ["types", "env_names", "random_seed", "solution_threshold", "pointer"]
 
 # Unix
 [target.'cfg(unix)'.dependencies]

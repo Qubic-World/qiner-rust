@@ -1,5 +1,5 @@
-﻿use std::env;
-use crate::env_names::{ENV_SOLUTION_THRESHOLD};
+use crate::env_names::ENV_SOLUTION_THRESHOLD;
+use std::env;
 
 pub fn get_solution_threshold() -> usize {
     env::var(ENV_SOLUTION_THRESHOLD).unwrap().trim().parse::<usize>().unwrap()

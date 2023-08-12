@@ -1,4 +1,4 @@
-﻿pub mod miner;
-pub mod math;
 pub mod converters;
+pub mod math;
+pub mod miner;
 pub mod network;
