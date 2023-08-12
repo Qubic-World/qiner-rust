@@ -43,7 +43,6 @@ fn main() {
 
     println!("Random seed: {:?}", random_seed);
     println!("Solution threshold: {:?}", solution_threshold);
-    println!("Random seed: {:?}", random_seed);
     println!("IP address: {ip_raw}");
     println!("Port: {port_raw}");
     println!("Id: {id_raw}");
