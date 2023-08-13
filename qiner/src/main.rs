@@ -87,7 +87,7 @@ async fn async_main() {
         let mut prev_iter_value: usize = 0;
 
         loop {
-            log::info!("{} scores {} it/s", arc_miner_clone.get_score(), arc_miner_clone.get_iter_counter() - prev_iter_value);
+            println!("{} scores {} it/s", arc_miner_clone.get_score(), arc_miner_clone.get_iter_counter() - prev_iter_value);
             prev_iter_value = arc_miner_clone.get_iter_counter();
 
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
