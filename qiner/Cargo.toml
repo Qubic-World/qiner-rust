@@ -6,7 +6,7 @@ authors = ["N-010"]
 
 [dependencies]
 # Async
-tokio = { version = "1.28.1", default-features = false, features = ["macros", "rt-multi-thread", "time", "sync", "net", "io-util"] }
+tokio = { version = "1.29.1", default-features = false, features = ["macros", "rt-multi-thread", "time", "sync", "net", "io-util"] }
 # Log
 pretty_env_logger = "0.5.0"
 log = "0.4.17"

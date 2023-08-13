@@ -5,7 +5,7 @@ use lib::types::{
     MiningData, NeuronsInput,
     NeuronsOutput, Nonce64, PublicKey64, Seed, Seed64, SynapsesInput, SynapsesOutput,
     DATA_LENGTH, INFO_LENGTH, MAX_INPUT_DURATION, MAX_OUTPUT_DURATION,
-    NUMBER_OF_INPUT_NEURONS,  NUMBER_OF_OUTPUT_NEURONS,
+    NUMBER_OF_INPUT_NEURONS, NUMBER_OF_OUTPUT_NEURONS,
 };
 use std::arch::x86_64::_rdrand64_step;
 use std::collections::HashMap;
@@ -136,7 +136,6 @@ impl Miner {
 
     pub fn find_solution(&self, nonce: &mut Nonce64, neuron_data: &mut NeuronData) -> bool {
         // Fill nonce with random values
-
         nonce.iter_mut().for_each(|item| {
             unsafe { _rdrand64_step(item) };
         });
