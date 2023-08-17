@@ -182,10 +182,8 @@ impl Miner {
                     let synapse = neuron_data.synapses.input[offset >> 5] >> ((offset & 31) << 1);
                     offset += 1;
                     if synapse & 1 != 0 {
-                        let idx = (((neuron_data.neurons.input[another_input_neuron_index >> 6]
-                            >> (another_input_neuron_index & 63))
-                            & 1)
-                            == ((synapse >> 1) & 1)) as usize;
+                        // 
+                        let idx = (((neuron_data.neurons.input[another_input_neuron_index >> 6] >> (another_input_neuron_index & 63)) ^ (synapse >> 1)) & 1) as usize;
                         counters[idx] += 1;
                     }
                 }
@@ -193,7 +191,7 @@ impl Miner {
                     let idx = DATA_LENGTH / 64 + (input_neuron_index >> 6);
                     let value = 1u64 << (input_neuron_index & 63);
 
-                    if counters[0] > counters[1] {
+                    if counters[1] > counters[0] {
                         neuron_data.neurons.input[idx] &= !value;
                     } else {
                         neuron_data.neurons.input[idx] |= value;
@@ -222,10 +220,7 @@ impl Miner {
                     let synapse = neuron_data.synapses.output[offset >> 5] >> ((offset & 31) << 1);
                     offset += 1;
                     if synapse & 1 != 0 {
-                        let idx = (((neuron_data.neurons.output[another_output_neuron_index >> 6]
-                            >> (another_output_neuron_index & 63))
-                            & 1)
-                            == ((synapse >> 1) & 1)) as usize;
+                        let idx = (((neuron_data.neurons.output[another_output_neuron_index >> 6] >> (another_output_neuron_index & 63)) ^ (synapse >> 1)) & 1) as usize;
                         counters[idx] += 1;
                     }
                 }
@@ -233,7 +228,7 @@ impl Miner {
                 {
                     let idx = INFO_LENGTH / 64 + (output_neuron_index >> 6);
                     let value = 1u64 << (output_neuron_index & 63);
-                    if counters[0] > counters[1] {
+                    if counters[1] > counters[0] {
                         neuron_data.neurons.output[idx] &= !value;
                     } else {
                         neuron_data.neurons.output[idx] |= value;
