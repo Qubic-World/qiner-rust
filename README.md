@@ -1,5 +1,9 @@
 ﻿# Qiner on Rust
 
+## !!!Important!!!
+
+Sending solutions over the network is **disabled** in the **new_algo** branch
+
 ## Deploy
 
 ### Download Rust
