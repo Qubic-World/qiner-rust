@@ -4,17 +4,12 @@ use std::mem::size_of;
 
 pub const STATE_SIZE: usize = 200;
 pub const STATE_SIZE_64: usize = 200 / size_of::<u64>();
-pub const NUMBER_OF_NEURONS: usize = 4194304;
-pub const NUMBER_OF_NEURONS_64: usize =
-    NUMBER_OF_NEURONS * size_of::<NeuronLink>() / size_of::<u64>();
-pub const NEURON_MOD_BITS: u64 =
-    (((NUMBER_OF_NEURONS - 1) << size_of::<NeuronLink>() * 8) | (NUMBER_OF_NEURONS - 1)) as u64;
-pub const DATA_LENGTH: usize = 1024;
-pub const INFO_LENGTH: usize = 512;
-pub const NUMBER_OF_INPUT_NEURONS: usize = 640;
-pub const NUMBER_OF_OUTPUT_NEURONS: usize = 640;
-pub const MAX_INPUT_DURATION: usize = 10;
-pub const MAX_OUTPUT_DURATION: usize = 10;
+pub const DATA_LENGTH: usize = 2000;
+pub const INFO_LENGTH: usize = 1000;
+pub const NUMBER_OF_INPUT_NEURONS: usize = 1000;
+pub const NUMBER_OF_OUTPUT_NEURONS: usize = 1000;
+pub const MAX_INPUT_DURATION: usize = 20;
+pub const MAX_OUTPUT_DURATION: usize = 20;
 pub const KECCAK_ROUND: usize = 12;
 pub const SEED_ITEM_NUM: usize = 32;
 
@@ -22,14 +17,15 @@ pub(crate) const RANDOM_SEED_SPLIT_CHAR: char = ',';
 
 pub const PORT: u16 = 21841u16;
 #[cfg(debug_assertions)]
-pub const STACK_SIZE: usize = 2097152 + 5 * 1024 * 1024;
+pub const STACK_SIZE: usize = 25165824 + 128 * 1024 * 1024;
 #[cfg(not(debug_assertions))]
-pub const STACK_SIZE: usize = 2097152;
+pub const STACK_SIZE: usize = 25165824;
 
-#[deprecated]
-pub const NUMBER_OF_NEURON_VALUES_64: usize = size_of::<NeuronValues>() / size_of::<u64>();
 pub const NUMBER_OF_NONCE: usize = 32;
 pub const NUMBER_OF_NONCE_64: usize = NUMBER_OF_NONCE / size_of::<u64>();
+
+pub const SYNAPSES_INPUT_LEN: usize = (NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) * (DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH);
+pub const SYNAPSES_OUTPUT_LEN: usize = (NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH) * (INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH);
 
 // Types
 pub type SeedItem = u8;
@@ -37,36 +33,25 @@ pub type Seed = [SeedItem; SEED_ITEM_NUM];
 pub type PublicKey = [u8; 32];
 pub type Nonce = [u8; NUMBER_OF_NONCE];
 pub type State = [u8; STATE_SIZE];
-pub type MiningItemData = u64;
-pub type MiningData = [MiningItemData; DATA_LENGTH / 64];
-pub type NeuronLink = u32;
-pub type NeuronLinks = [NeuronLink; NUMBER_OF_NEURONS * 2];
-pub type NeuronValue = u8;
-pub type NeuronValues = [NeuronValue; NUMBER_OF_NEURONS];
+pub type MiningItemData = i32;
+pub type MiningData = [MiningItemData; DATA_LENGTH];
 pub type Id = [u8; 60];
 pub type Signature = [u64; 8];
 pub type Gamma = [u8; 32];
 
-pub type SynapseItem = u64;
+pub type SynapseItem = i8;
+pub type NeuronItem = i32;
 
 // 64
 pub type Seed64 = [u64; 4];
 pub type PublicKey64 = [u64; 4];
 pub type State64 = [u64; STATE_SIZE_64];
 pub type Nonce64 = [u64; NUMBER_OF_NONCE_64];
-pub type NeuronLink64 = u64;
-pub type NeuronLinks64 = [NeuronLink64; NUMBER_OF_NEURONS_64 * 2];
-pub type NeuronsInput = [u64; (DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) / 64];
-pub type NeuronsOutput = [u64; (DATA_LENGTH + NUMBER_OF_OUTPUT_NEURONS + INFO_LENGTH) / 64];
-pub type SynapsesInput = [SynapseItem;
-    (NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) * (DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH)
-        / (64 / 2)];
-pub type SynapsesOutput = [SynapseItem;
-    (NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH)
-        * (DATA_LENGTH + NUMBER_OF_OUTPUT_NEURONS + INFO_LENGTH)
-        / (64 / 2)];
-pub type NeuronValue64 = u16;
-pub type NeuronValues64 = [NeuronValue64; NUMBER_OF_NEURONS_64];
+pub type NeuronsInput = [NeuronItem; DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH];
+pub type NeuronsOutput = [NeuronItem; INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH];
+pub type SynapsesInput = [SynapseItem; SYNAPSES_INPUT_LEN];
+pub type SynapsesOutput = [SynapseItem; SYNAPSES_OUTPUT_LEN];
+pub type SynapsesLengths = [u16; MAX_INPUT_DURATION * (NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) + MAX_OUTPUT_DURATION * (NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH)];
 
 pub mod network {
     use crate::types::NUMBER_OF_NONCE;
@@ -94,7 +79,6 @@ pub mod network {
 
 #[test]
 fn test_types() {
-    assert_eq!(size_of::<NeuronLinks>(), size_of::<NeuronLinks64>());
     // assert_eq!(size_of::<NeuronValues>(), size_of::<NeuronValues64>());
     assert_eq!(size_of::<Nonce>(), size_of::<Nonce64>());
     assert_eq!(size_of::<State>(), size_of::<State64>());

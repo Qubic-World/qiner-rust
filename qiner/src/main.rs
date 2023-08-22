@@ -6,7 +6,6 @@ use qiner::miner::{Miner};
 
 use std::sync::Arc;
 use std::{env};
-use log::log;
 use qiner::converters::get_public_key_64_from_id;
 
 fn get_number_of_thread() -> usize {
