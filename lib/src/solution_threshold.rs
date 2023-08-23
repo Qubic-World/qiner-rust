@@ -2,7 +2,7 @@ use crate::env_names::ENV_SOLUTION_THRESHOLD;
 use std::env;
 
 pub fn get_solution_threshold() -> usize {
-    env::var(ENV_SOLUTION_THRESHOLD).unwrap_or("1200".to_string()).trim().parse::<usize>().unwrap()
+    env::var(ENV_SOLUTION_THRESHOLD).unwrap_or("1100".to_string()).trim().parse::<usize>().unwrap()
 }
 
 #[test]
