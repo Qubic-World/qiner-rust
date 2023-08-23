@@ -43,7 +43,7 @@ pub type SynapseItem = i8;
 pub type NeuronItem = i32;
 
 // 64
-pub type Seed64 = [u64; 4];
+pub type Seed64 = [u64; SEED_ITEM_NUM / 8];
 pub type PublicKey64 = [u64; 4];
 pub type State64 = [u64; STATE_SIZE_64];
 pub type Nonce64 = [u64; NUMBER_OF_NONCE_64];

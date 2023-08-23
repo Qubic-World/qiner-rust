@@ -32,3 +32,5 @@ openssl = { version = "0.10", features = ["vendored"] }
 [profile.release]
 opt-level = 3
 lto = true
+panic = "abort"
+codegen-units = 1

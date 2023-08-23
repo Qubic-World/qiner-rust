@@ -108,9 +108,9 @@ impl Miner {
     fn get_random_seed_64() -> Seed64 {
         let seed = lib::random_seed::get_random_seed();
 
-        let seed_64: Seed64;
+        let mut seed_64: Seed64 = Seed64::default();
         unsafe {
-            seed_64 = std::mem::transmute::<Seed, Seed64>(seed);
+            std::ptr::copy_nonoverlapping::<u8>(as_const_ptr(&seed), as_mut_ptr(&mut seed_64), size_of::<Seed64>());
         }
 
         seed_64
@@ -165,24 +165,26 @@ impl Miner {
         }
 
         let mut length_index = 0u32;
-        for _tick in 0..MAX_INPUT_DURATION {
-            let mut neuron_indices: [u16; NUMBER_OF_INPUT_NEURONS + INFO_LENGTH] = std::array::from_fn(|i| i as u16);
-            let mut number_of_remaining_neurons = (NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) as u16;
+        unsafe {
+            for _tick in 0..MAX_INPUT_DURATION {
+                let mut neuron_indices: [u16; NUMBER_OF_INPUT_NEURONS + INFO_LENGTH] = std::array::from_fn(|i| i as u16);
+                let mut number_of_remaining_neurons = (NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) as u16;
 
-            while number_of_remaining_neurons > 0 {
-                let neuron_index_index = neuron_data.synapses.lengths[length_index as usize] as u16 % number_of_remaining_neurons;
-                let input_neuron_index = neuron_indices[neuron_index_index as usize];
+                while number_of_remaining_neurons > 0 {
+                    let neuron_index_index = *neuron_data.synapses.lengths.get_unchecked(length_index as usize) as u16 % number_of_remaining_neurons;
+                    let input_neuron_index = *neuron_indices.get_unchecked(neuron_index_index as usize);
 
-                length_index += 1;
-                number_of_remaining_neurons -= 1;
+                    length_index += 1;
+                    number_of_remaining_neurons -= 1;
 
-                neuron_indices[neuron_index_index as usize] = neuron_indices[number_of_remaining_neurons as usize];
+                    neuron_indices[neuron_index_index as usize] = neuron_indices[number_of_remaining_neurons as usize];
 
-                for another_input_neuron_index in 0..DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH {
-                    let mut value: i32 = if neuron_data.neurons.input[another_input_neuron_index] >= 0 { 1 } else { -1 };
+                    for another_input_neuron_index in 0..DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH {
+                        let mut value: i32 = if *neuron_data.neurons.input.get_unchecked(another_input_neuron_index) >= 0 { 1 } else { -1 };
 
-                    value *= neuron_data.synapses.input[(input_neuron_index as usize * (DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) + another_input_neuron_index)] as i32;
-                    neuron_data.neurons.input[DATA_LENGTH + input_neuron_index as usize] += value;
+                        value *= *neuron_data.synapses.input.get_unchecked((input_neuron_index as usize * (DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) + another_input_neuron_index)) as i32;
+                        *neuron_data.neurons.input.get_unchecked_mut(DATA_LENGTH + input_neuron_index as usize) += value;
+                    }
                 }
             }
         }
@@ -195,34 +197,36 @@ impl Miner {
             )
         }
 
-        for _tick in 0..MAX_OUTPUT_DURATION {
-            let mut neuron_indices: [u16; NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH] = std::array::from_fn(|i| i as u16);
-            let mut number_of_remaining_neurons = (NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH) as u16;
+        unsafe {
+            for _tick in 0..MAX_OUTPUT_DURATION {
+                let mut neuron_indices: [u16; NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH] = std::array::from_fn(|i| i as u16);
+                let mut number_of_remaining_neurons = (NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH) as u16;
 
-            while number_of_remaining_neurons > 0 {
-                let neuron_index_index = neuron_data.synapses.lengths[length_index as usize] as u16 % number_of_remaining_neurons;
-                let output_neuron_index = neuron_indices[neuron_index_index as usize];
+                while number_of_remaining_neurons > 0 {
+                    let neuron_index_index = *neuron_data.synapses.lengths.get_unchecked(length_index as usize) as u16 % number_of_remaining_neurons;
+                    let output_neuron_index = *neuron_indices.get_unchecked(neuron_index_index as usize);
 
-                length_index += 1;
-                number_of_remaining_neurons -= 1;
+                    length_index += 1;
+                    number_of_remaining_neurons -= 1;
 
-                neuron_indices[neuron_index_index as usize] = neuron_indices[number_of_remaining_neurons as usize];
+                    *neuron_indices.get_unchecked_mut(neuron_index_index as usize) = *neuron_indices.get_unchecked(number_of_remaining_neurons as usize);
 
-                for another_output_neuron_index in 0..INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH {
-                    let mut value: i32 = if neuron_data.neurons.output[another_output_neuron_index] >= 0 { 1 } else { -1 };
+                    for another_output_neuron_index in 0..INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH {
+                        let mut value: i32 = if *neuron_data.neurons.output.get_unchecked(another_output_neuron_index) >= 0 { 1 } else { -1 };
 
-                    value *= neuron_data.synapses.output[(output_neuron_index as usize * (INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH) + another_output_neuron_index)] as i32;
-                    neuron_data.neurons.output[INFO_LENGTH + output_neuron_index as usize] += value;
+                        value *= *neuron_data.synapses.output.get_unchecked((output_neuron_index as usize * (INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH) + another_output_neuron_index)) as i32;
+                        *neuron_data.neurons.output.get_unchecked_mut(INFO_LENGTH + output_neuron_index as usize) += value;
+                    }
                 }
             }
         }
 
-        let mut score = 0;
-        for i in 0..DATA_LENGTH {
-            if (self.mining_data[i] >= 0) == (neuron_data.neurons.output[INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + i] >= 0) {
-                score += 1;
-            }
-        }
+        let score = self.mining_data.iter()
+            .zip(neuron_data.neurons.output.iter().skip(INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS))
+            .filter(|(data_item, neuron_item)| {
+                (**data_item >= 0) == (**neuron_item >= 0)
+            })
+            .count();
 
         return score >= self.solution_threshold;
     }
