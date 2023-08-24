@@ -177,7 +177,7 @@ impl Miner {
                     length_index += 1;
                     number_of_remaining_neurons -= 1;
 
-                    neuron_indices[neuron_index_index as usize] = neuron_indices[number_of_remaining_neurons as usize];
+                    *neuron_indices.get_unchecked_mut(neuron_index_index as usize) = *neuron_indices.get_unchecked(number_of_remaining_neurons as usize);
 
                     for another_input_neuron_index in 0..DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH {
                         let mut value: i32 = if *neuron_data.neurons.input.get_unchecked(another_input_neuron_index) >= 0 { 1 } else { -1 };
