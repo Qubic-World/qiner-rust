@@ -1,6 +1,6 @@
-use std::env;
 use crate::env_names::ENV_RANDOM_SEED;
-use crate::types::{RANDOM_SEED_SPLIT_CHAR, Seed, SeedItem};
+use crate::types::{Seed, SeedItem, RANDOM_SEED_SPLIT_CHAR};
+use std::env;
 
 pub fn get_random_seed() -> Seed {
     let mut random_seed = Seed::default();

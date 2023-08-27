@@ -41,7 +41,6 @@ fn main() {
         .thread_stack_size(number_of_threads * STACK_SIZE)
         .build().unwrap();
 
-
     runtime.block_on(
         async move {
             async_main().await;

@@ -1,8 +1,8 @@
 use std::arch::x86_64::_rdrand64_step;
-use crate::math::random_64_by_ptr;
-use lib::pointer::{as_const_ptr, as_mut_ptr};
+use crate::math::random_64_by_ref;
+use lib::pointer::{as_const_ptr, as_mut_ptr, };
 use lib::solution_threshold::get_solution_threshold;
-use lib::types::{MiningData, NeuronsInput, NeuronsOutput, Nonce64, PublicKey64, Seed, Seed64, SynapsesInput, SynapsesOutput, DATA_LENGTH, INFO_LENGTH, NUMBER_OF_INPUT_NEURONS, NUMBER_OF_OUTPUT_NEURONS, SynapsesLengths, MAX_INPUT_DURATION, NeuronItem, MAX_OUTPUT_DURATION, SYNAPSES_OUTPUT_LEN};
+use lib::types::{MiningData, NeuronsInput, NeuronsOutput, Nonce64, PublicKey64, Seed64, SynapsesInput, SynapsesOutput, DATA_LENGTH, INFO_LENGTH, NUMBER_OF_INPUT_NEURONS, NUMBER_OF_OUTPUT_NEURONS, SynapsesLengths, MAX_INPUT_DURATION, NeuronItem, MAX_OUTPUT_DURATION};
 use std::collections::HashMap;
 use std::mem::{size_of, zeroed};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -38,7 +38,7 @@ impl Default for Neurons {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Synapses {
     pub input: SynapsesInput,
     pub output: SynapsesOutput,
@@ -71,6 +71,7 @@ pub struct Miner {
 
     pub found_nonce: Arc<std::sync::Mutex<Vec<Nonce64>>>,
 }
+
 
 impl Miner {
     pub fn new(computor_public_key: PublicKey64, num_threads: usize) -> Self {
@@ -123,47 +124,36 @@ impl Miner {
         });
 
         // Fill synapses with random values
-        let synapses_ptr: *mut u64 = as_mut_ptr(&mut neuron_data.synapses);
-        static SYNAPSES_SIZE: usize = size_of::<Synapses>();
-        random_64_by_ptr(&self.computor_public_key, nonce, SYNAPSES_SIZE, synapses_ptr);
+        random_64_by_ref(&self.computor_public_key, nonce, &mut neuron_data.synapses);
 
-        for input_neuron_index in 0..NUMBER_OF_INPUT_NEURONS + INFO_LENGTH {
-            for another_input_neuron_index in 0..DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH {
-                let offset = (input_neuron_index * (DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH)) + another_input_neuron_index;
-                neuron_data.synapses.input[offset] = ((neuron_data.synapses.input[offset]) as u8 % 3u8) as i8 - 1;
-            }
-        }
+        neuron_data.synapses.input.iter_mut().for_each(|item_input| {
+            let item_value = ((*item_input as u8) % 3 - 1) as i8;
+            *item_input = item_value;
+        });
 
-        for output_neuron_index in 0..NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH {
-            for another_output_neuron_index in 0..INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH {
-                let offset = (output_neuron_index * (INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH)) + another_output_neuron_index;
-                neuron_data.synapses.output[offset] = ((neuron_data.synapses.output[offset]) as u8 % 3u8) as i8 - 1;
-            }
-        }
+        neuron_data.synapses.output.iter_mut().for_each(|item_output| {
+            let item_value = ((*item_output as u8) % 3 - 1) as i8;
+            *item_output = item_value;
+        });
 
         for input_neuron_index in 0..NUMBER_OF_INPUT_NEURONS + INFO_LENGTH {
             let idx = input_neuron_index * (DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) + (DATA_LENGTH + input_neuron_index);
-            neuron_data.synapses.input[idx] = 0;
+            unsafe { *neuron_data.synapses.input.get_unchecked_mut(idx) = 0 };
         }
         for output_neuron_index in 0..NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH {
             let idx = output_neuron_index * (INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH) + (INFO_LENGTH + output_neuron_index);
-            neuron_data.synapses.output[idx] = 0;
+            unsafe { *neuron_data.synapses.output.get_unchecked_mut(idx) = 0 };
         }
 
-        unsafe {
-            std::ptr::copy_nonoverlapping::<u8>(
-                as_const_ptr(&self.mining_data),
-                as_mut_ptr(&mut neuron_data.neurons.input),
-                size_of::<MiningData>(),
-            );
-
-            std::ptr::write_bytes::<u8>(
-                as_mut_ptr(&mut neuron_data.neurons.input[size_of::<MiningData>() / size_of::<NeuronItem>()]),
-                0,
-                size_of::<Neurons>() - size_of::<MiningData>(),
-            );
-        }
-
+        // Copy with func
+        neuron_data.neurons.input.iter_mut().zip(self.mining_data.iter()).for_each(|(neuron, data)| {
+            *neuron = *data;
+        });
+        
+        neuron_data.neurons.input.iter_mut().skip(size_of::<MiningData>() / size_of::<NeuronItem>()).for_each(|neuron| {
+            *neuron = 0;
+        });
+        
         let mut length_index = 0u32;
         unsafe {
             for _tick in 0..MAX_INPUT_DURATION {
@@ -171,16 +161,15 @@ impl Miner {
                 let mut number_of_remaining_neurons = (NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) as u16;
 
                 while number_of_remaining_neurons > 0 {
-                    let neuron_index_index = *neuron_data.synapses.lengths.get_unchecked(length_index as usize) as u16 % number_of_remaining_neurons;
+                    let neuron_index_index = *neuron_data.synapses.lengths.get_unchecked(length_index as usize) % number_of_remaining_neurons;
                     let input_neuron_index = *neuron_indices.get_unchecked(neuron_index_index as usize);
 
                     length_index += 1;
                     number_of_remaining_neurons -= 1;
 
                     *neuron_indices.get_unchecked_mut(neuron_index_index as usize) = *neuron_indices.get_unchecked(number_of_remaining_neurons as usize);
-
                     for another_input_neuron_index in 0..DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH {
-                        let mut value: i32 = if *neuron_data.neurons.input.get_unchecked(another_input_neuron_index) >= 0 { 1 } else { -1 };
+                        let mut value: i32 = (neuron_data.neurons.input[another_input_neuron_index] >> 31) | 1;
 
                         value *= *neuron_data.synapses.input.get_unchecked((input_neuron_index as usize * (DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) + another_input_neuron_index)) as i32;
                         *neuron_data.neurons.input.get_unchecked_mut(DATA_LENGTH + input_neuron_index as usize) += value;
@@ -188,14 +177,12 @@ impl Miner {
                 }
             }
         }
-
-        unsafe {
-            std::ptr::copy_nonoverlapping::<u8>(
-                as_const_ptr(&neuron_data.neurons.input[DATA_LENGTH + NUMBER_OF_INPUT_NEURONS]),
-                as_mut_ptr(&mut neuron_data.neurons.output),
-                INFO_LENGTH * size_of::<NeuronItem>(),
-            )
-        }
+       
+        neuron_data.neurons.output.iter_mut().zip(neuron_data.neurons.input.iter_mut().skip(DATA_LENGTH + NUMBER_OF_INPUT_NEURONS))
+            .take(INFO_LENGTH)
+            .for_each(|(output, input)| {
+                *output = *input;
+            });
 
         unsafe {
             for _tick in 0..MAX_OUTPUT_DURATION {
@@ -203,7 +190,7 @@ impl Miner {
                 let mut number_of_remaining_neurons = (NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH) as u16;
 
                 while number_of_remaining_neurons > 0 {
-                    let neuron_index_index = *neuron_data.synapses.lengths.get_unchecked(length_index as usize) as u16 % number_of_remaining_neurons;
+                    let neuron_index_index = *neuron_data.synapses.lengths.get_unchecked(length_index as usize) % number_of_remaining_neurons;
                     let output_neuron_index = *neuron_indices.get_unchecked(neuron_index_index as usize);
 
                     length_index += 1;
@@ -212,7 +199,8 @@ impl Miner {
                     *neuron_indices.get_unchecked_mut(neuron_index_index as usize) = *neuron_indices.get_unchecked(number_of_remaining_neurons as usize);
 
                     for another_output_neuron_index in 0..INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH {
-                        let mut value: i32 = if *neuron_data.neurons.output.get_unchecked(another_output_neuron_index) >= 0 { 1 } else { -1 };
+                        // let mut value: i32 = if *neuron_data.neurons.output.get_unchecked(another_output_neuron_index) >= 0 { 1 } else { -1 };
+                        let mut value: i32 = (*neuron_data.neurons.output.get_unchecked(another_output_neuron_index) >> 31) | 1;
 
                         value *= *neuron_data.synapses.output.get_unchecked((output_neuron_index as usize * (INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH) + another_output_neuron_index)) as i32;
                         *neuron_data.neurons.output.get_unchecked_mut(INFO_LENGTH + output_neuron_index as usize) += value;

@@ -1,5 +1,5 @@
 ﻿[build]
-rustflags = ["-Ctarget-cpu=native", "--cfg","tokio_unstable"]
+rustflags = ["-Ctarget-cpu=native", "--cfg","tokio_unstable", "-Zmutable-noalias=yes"]
 
 [env]
 RUST_LOG = "INFO"
