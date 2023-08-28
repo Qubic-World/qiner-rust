@@ -1,10 +1,11 @@
 use std::arch::x86_64::_rdrand64_step;
 use crate::math::random_64_by_ref;
-use lib::pointer::{as_const_ptr, as_mut_ptr, };
+use lib::pointer::{as_const_ptr, as_mut_ptr, as_mut_slice};
 use lib::solution_threshold::get_solution_threshold;
 use lib::types::{MiningData, NeuronsInput, NeuronsOutput, Nonce64, PublicKey64, Seed64, SynapsesInput, SynapsesOutput, DATA_LENGTH, INFO_LENGTH, NUMBER_OF_INPUT_NEURONS, NUMBER_OF_OUTPUT_NEURONS, SynapsesLengths, MAX_INPUT_DURATION, NeuronItem, MAX_OUTPUT_DURATION};
 use std::collections::HashMap;
 use std::mem::{size_of, zeroed};
+use std::simd::{SimdInt};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -58,6 +59,8 @@ pub struct NeuronData {
 
 }
 
+type Indexes = [u16; (NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) * MAX_INPUT_DURATION];
+
 #[derive(Debug, Clone)]
 pub struct Miner {
     solution_threshold: usize,
@@ -68,6 +71,9 @@ pub struct Miner {
 
     score_counter: Arc<AtomicUsize>,
     iter_counter: Arc<AtomicUsize>,
+
+    number_of_remaining_neurons_array: Indexes,
+    neuron_indices_array: Indexes,
 
     pub found_nonce: Arc<std::sync::Mutex<Vec<Nonce64>>>,
 }
@@ -87,6 +93,13 @@ impl Miner {
         // Generate Mining data
         crate::math::random_64_by_ptr(&random_seed, &random_seed, size_of::<MiningData>(), as_mut_ptr(&mut mining_data));
 
+        let mut number_of_remaining_neurons_array: Indexes = unsafe { zeroed::<Indexes>() };
+        number_of_remaining_neurons_array.iter_mut().enumerate().for_each(|(idx, item)| {
+            *item = ((NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) - idx % (NUMBER_OF_INPUT_NEURONS + INFO_LENGTH)) as u16;
+        });
+
+        let neuron_indices_array: Indexes = std::array::from_fn(|i| i as u16);
+
         Miner {
             solution_threshold: get_solution_threshold(),
             num_tasks: num_threads,
@@ -94,6 +107,8 @@ impl Miner {
             computor_public_key,
             score_counter: Arc::new(AtomicUsize::new(0)),
             iter_counter: Arc::new(AtomicUsize::new(0)),
+            number_of_remaining_neurons_array,
+            neuron_indices_array,
             found_nonce: Arc::new(std::sync::Mutex::new(Vec::new())),
         }
     }
@@ -149,13 +164,53 @@ impl Miner {
         neuron_data.neurons.input.iter_mut().zip(self.mining_data.iter()).for_each(|(neuron, data)| {
             *neuron = *data;
         });
-        
+
         neuron_data.neurons.input.iter_mut().skip(size_of::<MiningData>() / size_of::<NeuronItem>()).for_each(|neuron| {
             *neuron = 0;
         });
-        
+
+        type Indexes = [u16; (NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) * MAX_INPUT_DURATION];
+        let mut neuron_indices_array: Indexes = self.neuron_indices_array;
+
+        self.number_of_remaining_neurons_array.iter()
+            .zip(neuron_data.synapses.lengths.iter())
+            .for_each(|(number_of_remaining_neurons, length)| {
+                unsafe {
+                    let neuron_index_index = *length % *number_of_remaining_neurons;
+                    let input_neuron_index = *neuron_indices_array.get_unchecked(neuron_index_index as usize);
+                    *neuron_indices_array.get_unchecked_mut(neuron_index_index as usize) = *neuron_indices_array.get_unchecked((*number_of_remaining_neurons - 1) as usize);
+
+                    let mut result_32 = std::simd::i32x32::splat(neuron_data.neurons.input[DATA_LENGTH + input_neuron_index as usize]);
+                    for another_input_neuron_index in (0..DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH).step_by(32) {
+                        let neuron_inputs_32 = std::simd::i32x32::from_slice(as_mut_slice(&mut neuron_data.neurons.input[another_input_neuron_index], 32));
+                        let mut values_32 = (neuron_inputs_32 >> std::simd::i32x32::splat(31i32)) | std::simd::i32x32::splat(1);
+                        let neuron_inputs_32 = std::simd::i32x32::from_slice(as_mut_slice(&mut neuron_data.synapses.input[(input_neuron_index as usize * (DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) + another_input_neuron_index)], 32));
+
+
+                        values_32 *= neuron_inputs_32;
+                        result_32 += values_32;
+
+                        *neuron_data.neurons.input.get_unchecked_mut(DATA_LENGTH + input_neuron_index as usize) = result_32.reduce_sum();
+
+                        /*                      let mut value: i32 = (*neuron_data.neurons.input.get_unchecked(another_input_neuron_index) >> 31) | 1;
+                          
+                                              value *= *neuron_data.synapses.input.get_unchecked((*input_neuron_index as usize * (DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) + another_input_neuron_index)) as i32;
+                                              neuron_input += value;
+                                              *neuron_data.neurons.input.get_unchecked_mut(DATA_LENGTH + *input_neuron_index as usize) += value;
+                        */
+                    }
+
+                    /*                    for another_input_neuron_index in 0..DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH {
+                                            let mut value: i32 = (neuron_data.neurons.input.get_unchecked(another_input_neuron_index) >> 31) | 1;
+                    
+                                            value *= *neuron_data.synapses.input.get_unchecked((input_neuron_index as usize * (DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH)) + another_input_neuron_index) as i32;
+                                            *neuron_data.neurons.input.get_unchecked_mut(DATA_LENGTH + input_neuron_index as usize) += value;
+                                        }*/
+                }
+            });
+
         let mut length_index = 0u32;
-        unsafe {
+        /*unsafe {
             for _tick in 0..MAX_INPUT_DURATION {
                 let mut neuron_indices: [u16; NUMBER_OF_INPUT_NEURONS + INFO_LENGTH] = std::array::from_fn(|i| i as u16);
                 let mut number_of_remaining_neurons = (NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) as u16;
@@ -168,6 +223,7 @@ impl Miner {
                     number_of_remaining_neurons -= 1;
 
                     *neuron_indices.get_unchecked_mut(neuron_index_index as usize) = *neuron_indices.get_unchecked(number_of_remaining_neurons as usize);
+
                     for another_input_neuron_index in 0..DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH {
                         let mut value: i32 = (neuron_data.neurons.input[another_input_neuron_index] >> 31) | 1;
 
@@ -176,14 +232,15 @@ impl Miner {
                     }
                 }
             }
-        }
-       
+        }*/
+
         neuron_data.neurons.output.iter_mut().zip(neuron_data.neurons.input.iter_mut().skip(DATA_LENGTH + NUMBER_OF_INPUT_NEURONS))
             .take(INFO_LENGTH)
             .for_each(|(output, input)| {
                 *output = *input;
             });
 
+        length_index = ((NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) * MAX_INPUT_DURATION) as u32;
         unsafe {
             for _tick in 0..MAX_OUTPUT_DURATION {
                 let mut neuron_indices: [u16; NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH] = std::array::from_fn(|i| i as u16);
@@ -198,12 +255,21 @@ impl Miner {
 
                     *neuron_indices.get_unchecked_mut(neuron_index_index as usize) = *neuron_indices.get_unchecked(number_of_remaining_neurons as usize);
 
-                    for another_output_neuron_index in 0..INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH {
-                        // let mut value: i32 = if *neuron_data.neurons.output.get_unchecked(another_output_neuron_index) >= 0 { 1 } else { -1 };
-                        let mut value: i32 = (*neuron_data.neurons.output.get_unchecked(another_output_neuron_index) >> 31) | 1;
+                    let mut result_32 = std::simd::i32x32::splat(neuron_data.neurons.output[INFO_LENGTH + output_neuron_index as usize]);
+                    for another_output_neuron_index in (0..INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH).step_by(32) {
+                        let neurons_output_32 = std::simd::i32x32::from_slice(as_mut_slice(&mut neuron_data.neurons.output[another_output_neuron_index], 32));
+                        let mut value_32 = (neurons_output_32 >> std::simd::i32x32::splat(31)) | std::simd::i32x32::splat(1);
+                        let neurons_output_32 = std::simd::i32x32::from_slice(as_mut_slice(&mut neuron_data.synapses.output[(output_neuron_index as usize * (INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH) + another_output_neuron_index)], 32));
+                        value_32 *= neurons_output_32;
+                        result_32 += value_32;
 
-                        value *= *neuron_data.synapses.output.get_unchecked((output_neuron_index as usize * (INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH) + another_output_neuron_index)) as i32;
-                        *neuron_data.neurons.output.get_unchecked_mut(INFO_LENGTH + output_neuron_index as usize) += value;
+                        *neuron_data.neurons.output.get_unchecked_mut(INFO_LENGTH + output_neuron_index as usize) = result_32.reduce_sum();
+
+                        /*                        let mut value: i32 = (*neuron_data.neurons.output.get_unchecked(another_output_neuron_index) >> 31) | 1;
+                        
+                                                value *= *neuron_data.synapses.output.get_unchecked((output_neuron_index as usize * (INFO_LENGTH + NUMBER_OF_OUTPUT_NEURONS + DATA_LENGTH) + another_output_neuron_index)) as i32;
+                                                *neuron_data.neurons.output.get_unchecked_mut(INFO_LENGTH + output_neuron_index as usize) += value;
+                        */
                     }
                 }
             }
