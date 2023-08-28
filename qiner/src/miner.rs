@@ -1,4 +1,4 @@
-use std::arch::x86_64::_rdrand64_step;
+use std::arch::x86_64::{__m512i, _mm512_add_epi32, _mm512_load_epi32, _mm512_loadu_epi32, _mm512_mul_epi32, _mm512_or_epi32, _mm512_reduce_add_epi32, _mm512_set1_epi32, _mm512_srli_epi32, _rdrand64_step};
 use crate::math::random_64_by_ref;
 use lib::pointer::{as_const_ptr, as_mut_ptr, as_mut_slice};
 use lib::solution_threshold::get_solution_threshold;
@@ -180,18 +180,19 @@ impl Miner {
                     let input_neuron_index = *neuron_indices_array.get_unchecked(neuron_index_index as usize);
                     *neuron_indices_array.get_unchecked_mut(neuron_index_index as usize) = *neuron_indices_array.get_unchecked((*number_of_remaining_neurons - 1) as usize);
 
-                    let mut result_32 = std::simd::i32x32::splat(neuron_data.neurons.input[DATA_LENGTH + input_neuron_index as usize]);
-                    for another_input_neuron_index in (0..DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH).step_by(32) {
-                        let neuron_inputs_32 = std::simd::i32x32::from_slice(as_mut_slice(&mut neuron_data.neurons.input[another_input_neuron_index], 32));
-                        let mut values_32 = (neuron_inputs_32 >> std::simd::i32x32::splat(31i32)) | std::simd::i32x32::splat(1);
-                        let neuron_inputs_32 = std::simd::i32x32::from_slice(as_mut_slice(&mut neuron_data.synapses.input[(input_neuron_index as usize * (DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) + another_input_neuron_index)], 32));
+                    let mut result_512_16 = _mm512_set1_epi32(neuron_data.neurons.input[DATA_LENGTH + input_neuron_index as usize]);
+                    for another_input_neuron_index in (0..DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH).step_by(16) {
+                        let neuron_inputs_16_512: __m512i = __m512i::from(std::simd::i32x16::from_slice(as_mut_slice(&mut neuron_data.neurons.input[another_input_neuron_index], 32)));
 
+                        let mut value_16_512 = _mm512_srli_epi32::<31>(neuron_inputs_16_512);
+                        value_16_512 = _mm512_or_epi32(value_16_512, _mm512_set1_epi32(1));
+                        let neuron_inputs_32 = __m512i::from(std::simd::i32x16::from_slice(as_mut_slice(&mut neuron_data.synapses.input[(input_neuron_index as usize * (DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) + another_input_neuron_index)], 32)));
 
-                        values_32 *= neuron_inputs_32;
-                        result_32 += values_32;
+                        value_16_512 = _mm512_mul_epi32(value_16_512, neuron_inputs_32);
 
-                        *neuron_data.neurons.input.get_unchecked_mut(DATA_LENGTH + input_neuron_index as usize) = result_32.reduce_sum();
+                        result_512_16 = _mm512_add_epi32(result_512_16, value_16_512);
 
+                        *neuron_data.neurons.input.get_unchecked_mut(DATA_LENGTH + input_neuron_index as usize) = _mm512_reduce_add_epi32(result_512_16);
                         /*                      let mut value: i32 = (*neuron_data.neurons.input.get_unchecked(another_input_neuron_index) >> 31) | 1;
                           
                                               value *= *neuron_data.synapses.input.get_unchecked((*input_neuron_index as usize * (DATA_LENGTH + NUMBER_OF_INPUT_NEURONS + INFO_LENGTH) + another_input_neuron_index)) as i32;
